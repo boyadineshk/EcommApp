@@ -15,8 +15,9 @@ type CartState = {
   items: CartItem[];
 };
 
+// ✅ FIXED: Allow `quantity` optionally in payload for ADD_ITEM
 type CartAction =
-  | { type: 'ADD_ITEM'; payload: Omit<CartItem, 'quantity'> }
+  | { type: 'ADD_ITEM'; payload: Partial<CartItem> & { id: number } }
   | { type: 'REMOVE_ITEM'; payload: number }
   | { type: 'UPDATE_QUANTITY'; payload: { id: number; quantity: number } }
   | { type: 'CLEAR_CART' }
@@ -34,17 +35,27 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
   switch (action.type) {
     case 'ADD_ITEM': {
       const existing = state.items.find((i) => i.id === action.payload.id);
+
       if (existing) {
+        // ✅ FIX: Use payload quantity if provided, otherwise increment by 1
+        const newQuantity = action.payload.quantity
+          ? existing.quantity + action.payload.quantity
+          : existing.quantity + 1;
+
         newState = {
           ...state,
           items: state.items.map((i) =>
-            i.id === action.payload.id ? { ...i, quantity: i.quantity + 1 } : i
+            i.id === action.payload.id ? { ...i, quantity: newQuantity } : i
           ),
         };
       } else {
+        // ✅ FIX: Use quantity from payload or default to 1
         newState = {
           ...state,
-          items: [...state.items, { ...action.payload, quantity: 1 }],
+          items: [
+            ...state.items,
+            { ...action.payload, quantity: action.payload.quantity || 1 } as CartItem,
+          ],
         };
       }
       break;
@@ -61,7 +72,9 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
       newState = {
         ...state,
         items: state.items.map((i) =>
-          i.id === action.payload.id ? { ...i, quantity: action.payload.quantity } : i
+          i.id === action.payload.id
+            ? { ...i, quantity: action.payload.quantity }
+            : i
         ),
       };
       break;
@@ -78,7 +91,7 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
       return state;
   }
 
-  // Save to AsyncStorage whenever cart changes
+  // ✅ Always save to AsyncStorage after every cart update
   AsyncStorage.setItem(CART_STORAGE_KEY, JSON.stringify(newState.items)).catch(console.error);
 
   return newState;
@@ -87,13 +100,13 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
 export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   const [state, dispatch] = useReducer(cartReducer, { items: [] });
 
-  // Load cart from AsyncStorage on app start
+  // ✅ Load from AsyncStorage on app start
   useEffect(() => {
     const loadCart = async () => {
       try {
         const savedCart = await AsyncStorage.getItem(CART_STORAGE_KEY);
         if (savedCart) {
-          const items = JSON.parse(savedCart);
+          const items: CartItem[] = JSON.parse(savedCart);
           dispatch({ type: 'LOAD_CART', payload: items });
         }
       } catch (error) {

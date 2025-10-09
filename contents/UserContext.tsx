@@ -1,4 +1,4 @@
-// contents/UserContext.tsx
+// contents/UserContext.tsx - FIXED VERSION
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -46,7 +46,8 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User>({ username: '', email: '' });
   const [orders, setOrders] = useState<Order[]>([]);
   const [addresses, setAddresses] = useState<Address[]>([]);
-  const [showUserModal, setShowUserModal] = useState(true);
+  // ✅ CHANGED: Don't show modal on app start
+  const [showUserModal, setShowUserModal] = useState(false);
 
   useEffect(() => {
     loadUserData();
@@ -62,7 +63,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (userData) {
         setUser(JSON.parse(userData));
-        setShowUserModal(false);
+        // ✅ REMOVED: Don't set showUserModal to false
       }
       if (ordersData) setOrders(JSON.parse(ordersData));
       if (addressesData) setAddresses(JSON.parse(addressesData));

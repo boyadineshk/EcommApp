@@ -10,7 +10,9 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "scheme": "ecommm",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -30,7 +32,8 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.boyadineshk.ecommm"
+      "package": "com.boyadineshk.ecommm",
+      "permissions": ["INTERNET"]
     },
     "web": {
       "output": "static",
@@ -49,7 +52,8 @@
             "backgroundColor": "#000000"
           }
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,

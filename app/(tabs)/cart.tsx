@@ -1,4 +1,4 @@
-// app/(tabs)/cart.tsx (Enhanced)
+// app/(tabs)/cart.tsx - UPDATED WITH AUTH CHECK
 import React from 'react';
 import {
   View,
@@ -8,16 +8,16 @@ import {
   StyleSheet,
   Alert,
   ScrollView,
-  Platform,
-  Animated,
 } from 'react-native';
 import { useCart } from '../../contents/CartContext';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '../../contents/AuthContext';
 
 export default function CartScreen() {
   const { state, dispatch } = useCart();
   const router = useRouter();
+  const { user } = useAuth();
 
   const updateQuantity = (id: number, newQty: number) => {
     if (newQty < 1) {
@@ -50,12 +50,66 @@ export default function CartScreen() {
       Alert.alert('Empty Cart', 'Add some items before checkout.');
       return;
     }
+
+    // ✅ CHECK AUTH BEFORE CHECKOUT
+    if (!user) {
+      Alert.alert(
+        'Login Required',
+        'Please login to proceed with checkout',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Login',
+            onPress: () => router.push('/screens/LoginScreen')
+          },
+        ]
+      );
+      return;
+    }
+
     router.push('/screens/CheckoutScreen');
   };
 
   const total = state.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const shipping = total > 500 ? 0 : 40;
   const finalTotal = total + shipping;
+
+  // ✅ SHOW LOGIN PROMPT IF NOT AUTHENTICATED AND CART HAS ITEMS
+  if (!user && state.items.length > 0) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Shopping Cart ({state.items.length})</Text>
+        </View>
+
+        <View style={styles.authPromptContainer}>
+          <Ionicons name="lock-closed-outline" size={64} color="#3498db" />
+          <Text style={styles.authPromptTitle}>Login to Continue</Text>
+          <Text style={styles.authPromptMessage}>
+            Please login to proceed with your purchase and manage your cart
+          </Text>
+
+          <TouchableOpacity
+            style={styles.loginButton}
+            onPress={() => router.push('/screens/LoginScreen')}
+          >
+            <Text style={styles.loginButtonText}>Login</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.signupButton}
+            onPress={() => router.push('/screens/RegisterScreen')}
+          >
+            <Text style={styles.signupButtonText}>Create Account</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={() => router.push('/(tabs)')}>
+            <Text style={styles.continueShoppingText}>Continue Shopping</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   if (state.items.length === 0) {
     return (
@@ -153,6 +207,63 @@ const styles = StyleSheet.create({
   },
   headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#333' },
   clearAllText: { color: '#e74c3c', fontSize: 14, fontWeight: '600' },
+
+  // ✅ AUTH PROMPT STYLES
+  authPromptContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  authPromptTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
+    marginTop: 20,
+    marginBottom: 10,
+  },
+  authPromptMessage: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 30,
+    lineHeight: 22,
+  },
+  loginButton: {
+    backgroundColor: '#3498db',
+    paddingVertical: 14,
+    paddingHorizontal: 40,
+    borderRadius: 12,
+    width: '80%',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  loginButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  signupButton: {
+    backgroundColor: '#fff',
+    paddingVertical: 14,
+    paddingHorizontal: 40,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#3498db',
+    width: '80%',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  signupButtonText: {
+    color: '#3498db',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  continueShoppingText: {
+    color: '#999',
+    fontSize: 14,
+  },
+
   emptyCart: {
     flex: 1,
     justifyContent: 'center',

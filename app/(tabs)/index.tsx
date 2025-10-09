@@ -1,4 +1,4 @@
-// app/(tabs)/index.tsx (Fixed - Remove non-functional + button)
+// app/(tabs)/index.tsx - UPDATED WITH AUTH CHECK
 import React, { useEffect, useState, useMemo } from 'react';
 import {
   View,
@@ -17,6 +17,8 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { productsApi } from '../../services/api';
 import { Ionicons } from '@expo/vector-icons';
 import { useCart } from '../../contents/CartContext';
+import { useAuth } from '../../contents/AuthContext';
+import AuthPrompt from '../components/AuthPrompt';
 
 const { width } = Dimensions.get('window');
 
@@ -59,9 +61,11 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeBanner, setActiveBanner] = useState(0);
+  const [showAuthPrompt, setShowAuthPrompt] = useState(false);
   const router = useRouter();
   const params = useLocalSearchParams<{ categoryName?: string }>();
   const { dispatch } = useCart();
+  const { user } = useAuth();
 
   const selectedCategoryName = params.categoryName;
 
@@ -127,7 +131,7 @@ export default function HomeScreen() {
   const getSampleProducts = (): Product[] => [
     {
       id: 1,
-      title: 'Sample Product 1 (Dummy)',
+      title: 'Sample Product 1',
       price: 99.99,
       description: 'This is a sample product description',
       images: ['https://via.placeholder.com/300x300?text=Product+1'],
@@ -135,31 +139,46 @@ export default function HomeScreen() {
     },
     {
       id: 2,
-      title: 'Sample Product 2 (Dummy)',
+      title: 'Sample Product 2',
       price: 149.99,
       description: 'This is another sample product',
       images: ['https://via.placeholder.com/300x300?text=Product+2'],
       category: { id: 20, name: 'laptops' },
     },
-    {
-      id: 3,
-      title: 'Sample Product 3 (Dummy)',
-      price: 79.99,
-      description: 'Sample product description',
-      images: ['https://via.placeholder.com/300x300?text=Product+3'],
-      category: { id: 30, name: 'groceries' },
-    },
-    {
-      id: 4,
-      title: 'Sample Product 4 (Dummy)',
-      price: 199.99,
-      description: 'Another sample product',
-      images: ['https://via.placeholder.com/300x300?text=Product+4'],
-      category: { id: 40, name: 'skincare' },
-    },
   ];
 
   const displayedProducts = filteredProducts.slice(0, 20);
+
+  // ✅ Auth check banner for non-logged in users
+  const renderAuthBanner = () => {
+    if (user) return null;
+
+    return (
+      <View style={styles.authBanner}>
+        <View style={styles.authBannerContent}>
+          <Ionicons name="person-circle-outline" size={40} color="#3498db" />
+          <View style={styles.authBannerText}>
+            <Text style={styles.authBannerTitle}>Welcome to Our Store! 👋</Text>
+            <Text style={styles.authBannerSubtitle}>Login to unlock exclusive features</Text>
+          </View>
+        </View>
+        <View style={styles.authBannerButtons}>
+          <TouchableOpacity
+            style={styles.authBannerLoginBtn}
+            onPress={() => router.push('/screens/LoginScreen')}
+          >
+            <Text style={styles.authBannerLoginText}>Login</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.authBannerSignupBtn}
+            onPress={() => router.push('/screens/RegisterScreen')}
+          >
+            <Text style={styles.authBannerSignupText}>Sign Up</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
 
   const renderBannerItem = ({ item }: { item: any }) => (
     <TouchableOpacity style={styles.bannerItem}>
@@ -171,7 +190,6 @@ export default function HomeScreen() {
     </TouchableOpacity>
   );
 
-  // FIXED: Remove the non-functional + button
   const renderProductItem = ({ item }: { item: Product }) => (
     <TouchableOpacity
       style={styles.productCard}
@@ -193,7 +211,6 @@ export default function HomeScreen() {
         </Text>
         <View style={styles.productFooter}>
           <Text style={styles.productPrice}>₹{item.price.toFixed(2)}</Text>
-          {/* + Button removed - users can add from product details page */}
         </View>
       </View>
     </TouchableOpacity>
@@ -255,6 +272,9 @@ export default function HomeScreen() {
             <Ionicons name="notifications-outline" size={24} color="#333" />
           </TouchableOpacity>
         </View>
+
+        {/* ✅ AUTH BANNER */}
+        {renderAuthBanner()}
 
         {selectedCategoryName && (
           <TouchableOpacity
@@ -350,6 +370,12 @@ export default function HomeScreen() {
           )}
         </View>
       </ScrollView>
+
+      {/* ✅ AUTH PROMPT MODAL */}
+      <AuthPrompt
+        visible={showAuthPrompt}
+        onClose={() => setShowAuthPrompt(false)}
+      />
     </View>
   );
 }
@@ -370,6 +396,71 @@ const styles = StyleSheet.create({
   greeting: { fontSize: 18, fontWeight: '600', color: '#333' },
   subGreeting: { fontSize: 14, color: '#666', marginTop: 2 },
   notificationBtn: { padding: 8 },
+
+  // ✅ AUTH BANNER STYLES
+  authBanner: {
+    backgroundColor: '#fff',
+    margin: 15,
+    padding: 20,
+    borderRadius: 16,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    borderLeftWidth: 4,
+    borderLeftColor: '#3498db',
+  },
+  authBannerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  authBannerText: {
+    flex: 1,
+    marginLeft: 15,
+  },
+  authBannerTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 4,
+  },
+  authBannerSubtitle: {
+    fontSize: 13,
+    color: '#666',
+  },
+  authBannerButtons: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  authBannerLoginBtn: {
+    flex: 1,
+    backgroundColor: '#3498db',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  authBannerLoginText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  authBannerSignupBtn: {
+    flex: 1,
+    backgroundColor: '#fff',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#3498db',
+  },
+  authBannerSignupText: {
+    color: '#3498db',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+
   clearFilterBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -475,15 +566,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 'auto', // This pushes the price to the bottom
+    marginTop: 'auto',
   },
   productPrice: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#e74c3c',
-    marginTop: 8, // Add spacing above the price
+    marginTop: 8,
   },
-  // REMOVED: addToCartBtn styles since we're not using the button anymore
   emptyContainer: { padding: 40, alignItems: 'center' },
   emptyText: { fontSize: 16, color: '#666', marginTop: 12 },
   retryButton: {
